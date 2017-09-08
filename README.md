@@ -1,4 +1,4 @@
-# tty-bat
+# rain
 
 Display an ascii art animation of rain in a terminal
 
