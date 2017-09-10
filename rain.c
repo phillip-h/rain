@@ -42,7 +42,7 @@ char pick_rain_char(void);
 
 void add_rain(char **rain);
 void draw_rain(char **rain);
-void scale_rain(char **rain);
+void scale_rain(char ***rain);
 void update_rain(char **rain);
 
 int main(int argc, char **argv) {
@@ -59,10 +59,10 @@ int main(int argc, char **argv) {
 
     srand(time(NULL));
     if (dir < 0) dir = rand() % 3;
-    char **rain = malloc(LINES * sizeof(char*));
+    char **rain = NULL;
 
     while (true) {
-        scale_rain(rain);
+        scale_rain(&rain);
         update_rain(rain); 
         draw_rain(rain);
 
@@ -86,11 +86,11 @@ void add_rain(char **rain) {
 }
 
 void draw_rain(char **rain) {
-    for (int r = 0; r < LINES - 1; ++r)
+    for (int r = 0; r < rain_r - 1; ++r)
        mvprintw(r, 0, rain[r]);  
 
     /* draw the last row as a puddle */
-    for (int c = 0; c < COLS; ++c) {
+    for (int c = 0; c < rain_c; ++c) {
         const char *s = rain[LINES - 1][c] == rain_chars[0] ? PUDDLE : SPLASH;
         mvprintw(LINES - 1, c, s);
     }
@@ -106,21 +106,25 @@ char pick_rain_char(void) {
     return c;
 }
 
-void scale_rain(char **rain) {
+void scale_rain(char ***rain_ptr) {
+    char **rain = *rain_ptr;
+
     if (LINES > rain_r) {
         rain = realloc(rain, LINES * sizeof(char*));
         for (int r = rain_r; r < LINES; ++r) rain[r] = NULL;
         rain_r = LINES;
     }
 
-    if (COLS > rain_c) {
-        for (int r = 0; r < rain_r; ++r) {
+    for (int r = 0; r < rain_r; ++r) {
+        if (rain[r] == NULL || COLS > rain_c) {
             rain[r] = realloc(rain[r], (COLS + 1));
             memset(rain[r] + rain_c, ' ', COLS - rain_c);
             rain[r][rain_c + 1] = '\0';
         }
-        rain_c = COLS;
     }
+
+    rain_c = COLS;
+    *rain_ptr = rain;
 }
 
 void update_rain(char **rain) {
@@ -132,7 +136,7 @@ void update_rain(char **rain) {
      * shift each row down and to the side,
      * if applicable
      */
-    for (int r = LINES - 1; r > 0; --r)
+    for (int r = rain_r - 1; r > 0; --r)
         memcpy(rain[r] + off_dest, rain[r - 1] + off_src, len);
 
     /* clear the top row and add more rain */
